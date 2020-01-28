@@ -6,6 +6,7 @@ use futures::{ready, TryFuture};
 use pin_project::{pin_project, project};
 
 use super::{Filter, FilterBase, Internal};
+use crate::document::{DocumentedFilter, RouteDocumentation};
 use crate::generic::Either;
 use crate::reject::CombineRejection;
 use crate::route;
@@ -35,6 +36,22 @@ where
             state: State::First(self.first.filter(Internal), self.second.clone()),
             original_path_index: PathIndex(idx),
         }
+    }
+}
+
+impl<T, U> DocumentedFilter for Or<T, U>
+where
+    T: DocumentedFilter,
+    U: DocumentedFilter,
+{
+    type Output = Vec<RouteDocumentation>;
+
+    fn document(&self, item: RouteDocumentation) -> Self::Output {
+        let Or{ first, second } = self;
+        first.document(item.clone())
+            .into_iter()
+            .chain(second.document(item.clone()))
+            .collect()
     }
 }
 

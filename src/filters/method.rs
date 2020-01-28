@@ -9,6 +9,7 @@
 use futures::future;
 use http::Method;
 
+use crate::document::{DocumentedFilter, ExplicitDocumentation};
 use crate::filter::{filter_fn, filter_fn_one, Filter, One};
 use crate::reject::Rejection;
 use std::convert::Infallible;
@@ -22,8 +23,9 @@ use std::convert::Infallible;
 ///
 /// let get_only = warp::get().map(warp::reply);
 /// ```
-pub fn get() -> impl Filter<Extract = (), Error = Rejection> + Copy {
-    method_is(|| &Method::GET)
+pub fn get() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = method_is(|| &Method::GET);
+    ExplicitDocumentation::new(filter, |item| item.method = Some(Method::GET))
 }
 
 /// Create a `Filter` that requires the request method to be `POST`.
@@ -35,8 +37,9 @@ pub fn get() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 ///
 /// let post_only = warp::post().map(warp::reply);
 /// ```
-pub fn post() -> impl Filter<Extract = (), Error = Rejection> + Copy {
-    method_is(|| &Method::POST)
+pub fn post() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = method_is(|| &Method::POST);
+    ExplicitDocumentation::new(filter, |item| item.method = Some(Method::POST))
 }
 
 /// Create a `Filter` that requires the request method to be `PUT`.
@@ -48,8 +51,9 @@ pub fn post() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 ///
 /// let put_only = warp::put().map(warp::reply);
 /// ```
-pub fn put() -> impl Filter<Extract = (), Error = Rejection> + Copy {
-    method_is(|| &Method::PUT)
+pub fn put() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = method_is(|| &Method::PUT);
+    ExplicitDocumentation::new(filter, |item| item.method = Some(Method::PUT))
 }
 
 /// Create a `Filter` that requires the request method to be `DELETE`.
@@ -61,8 +65,9 @@ pub fn put() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 ///
 /// let delete_only = warp::delete().map(warp::reply);
 /// ```
-pub fn delete() -> impl Filter<Extract = (), Error = Rejection> + Copy {
-    method_is(|| &Method::DELETE)
+pub fn delete() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = method_is(|| &Method::DELETE);
+    ExplicitDocumentation::new(filter, |item| item.method = Some(Method::DELETE))
 }
 
 /// Create a `Filter` that requires the request method to be `HEAD`.
@@ -74,8 +79,9 @@ pub fn delete() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 ///
 /// let head_only = warp::head().map(warp::reply);
 /// ```
-pub fn head() -> impl Filter<Extract = (), Error = Rejection> + Copy {
-    method_is(|| &Method::HEAD)
+pub fn head() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = method_is(|| &Method::HEAD);
+    ExplicitDocumentation::new(filter, |item| item.method = Some(Method::HEAD))
 }
 
 /// Create a `Filter` that requires the request method to be `OPTIONS`.
@@ -87,8 +93,9 @@ pub fn head() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 ///
 /// let options_only = warp::options().map(warp::reply);
 /// ```
-pub fn options() -> impl Filter<Extract = (), Error = Rejection> + Copy {
-    method_is(|| &Method::OPTIONS)
+pub fn options() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = method_is(|| &Method::OPTIONS);
+    ExplicitDocumentation::new(filter, |item| item.method = Some(Method::OPTIONS))
 }
 
 /// Create a `Filter` that requires the request method to be `PATCH`.
@@ -100,8 +107,9 @@ pub fn options() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 ///
 /// let patch_only = warp::patch().map(warp::reply);
 /// ```
-pub fn patch() -> impl Filter<Extract = (), Error = Rejection> + Copy {
-    method_is(|| &Method::PATCH)
+pub fn patch() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = method_is(|| &Method::PATCH);
+    ExplicitDocumentation::new(filter, |item| item.method = Some(Method::PATCH))
 }
 
 /// Extract the `Method` from the request.

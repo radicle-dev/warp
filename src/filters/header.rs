@@ -11,6 +11,7 @@ use futures::future;
 use headers::{Header, HeaderMapExt};
 use http::HeaderMap;
 
+use crate::document::{DocumentedFilter, DocumentedHeader, ExplicitDocumentation};
 use crate::filter::{filter_fn, filter_fn_one, Filter, One};
 use crate::reject::{self, Rejection};
 
@@ -35,8 +36,8 @@ use crate::reject::{self, Rejection};
 /// ```
 pub fn header<T: FromStr + Send + 'static>(
     name: &'static str,
-) -> impl Filter<Extract = One<T>, Error = Rejection> + Copy {
-    filter_fn_one(move |route| {
+) -> impl Filter<Extract = One<T>, Error = Rejection> + DocumentedFilter + Copy {
+    let filter = filter_fn_one(move |route| {
         log::trace!("header({:?})", name);
         let route = route
             .headers()
@@ -45,6 +46,9 @@ pub fn header<T: FromStr + Send + 'static>(
             .and_then(|value| value.to_str().map_err(|_| reject::invalid_header(name)))
             .and_then(|s| T::from_str(s).map_err(|_| reject::invalid_header(name)));
         future::ready(route)
+    });
+    ExplicitDocumentation::new(filter, move |item| {
+        item.headers.push(DocumentedHeader{ name: name.to_string(), description: None, required: true })
     })
 }
 
@@ -74,11 +78,11 @@ pub(crate) fn header2<T: Header + Send + 'static>(
 /// ```
 pub fn optional<T>(
     name: &'static str,
-) -> impl Filter<Extract = One<Option<T>>, Error = Rejection> + Copy
+) -> impl Filter<Extract = One<Option<T>>, Error = Rejection> + DocumentedFilter + Copy
 where
     T: FromStr + Send + 'static,
 {
-    filter_fn_one(move |route| {
+    let filter = filter_fn_one(move |route| {
         log::trace!("optional({:?})", name);
         let result = route.headers().get(name).map(|value| {
             value
@@ -93,6 +97,9 @@ where
             Some(Err(e)) => future::err(e),
             None => future::ok(None),
         }
+    });
+    ExplicitDocumentation::new(filter, move |item| {
+        item.headers.push(DocumentedHeader{ name: name.to_string(), description: None, required: false })
     })
 }
 
@@ -136,8 +143,8 @@ where
 pub fn exact(
     name: &'static str,
     value: &'static str,
-) -> impl Filter<Extract = (), Error = Rejection> + Copy {
-    filter_fn(move |route| {
+) -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = filter_fn(move |route| {
         log::trace!("exact?({:?}, {:?})", name, value);
         let route = route
             .headers()
@@ -151,6 +158,9 @@ pub fn exact(
                 }
             });
         future::ready(route)
+    });
+    ExplicitDocumentation::new(filter, move |item| {
+        item.headers.push(DocumentedHeader{ name: name.to_string(), description: Some(format!("Must be set to `{}`.", value)), required: true })
     })
 }
 
@@ -168,8 +178,8 @@ pub fn exact(
 pub fn exact_ignore_case(
     name: &'static str,
     value: &'static str,
-) -> impl Filter<Extract = (), Error = Rejection> + Copy {
-    filter_fn(move |route| {
+) -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = filter_fn(move |route| {
         log::trace!("exact_ignore_case({:?}, {:?})", name, value);
         let route = route
             .headers()
@@ -183,6 +193,9 @@ pub fn exact_ignore_case(
                 }
             });
         future::ready(route)
+    });
+    ExplicitDocumentation::new(filter, move |item| {
+        item.headers.push(DocumentedHeader{ name: name.to_string(), description: Some(format!("Must be set to `{}` (case insensitive).", value)), required: true })
     })
 }
 
@@ -198,6 +211,7 @@ pub fn exact_ignore_case(
 ///         format!("header count: {}", headers.len())
 ///     });
 /// ```
-pub fn headers_cloned() -> impl Filter<Extract = One<HeaderMap>, Error = Infallible> + Copy {
-    filter_fn_one(|route| future::ok(route.headers().clone()))
+pub fn headers_cloned() -> impl Filter<Extract = One<HeaderMap>, Error = Infallible> + DocumentedFilter + Copy {
+    let filter = filter_fn_one(|route| future::ok(route.headers().clone()));
+    ExplicitDocumentation::new(filter, |_|())
 }

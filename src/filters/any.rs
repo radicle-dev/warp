@@ -4,6 +4,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use crate::document::{DocumentedFilter, RouteDocumentation};
 use crate::filter::{Filter, FilterBase, Internal};
 
 /// A filter that matches any route.
@@ -44,7 +45,7 @@ use crate::filter::{Filter, FilterBase, Internal};
 ///         db.contains(&param_id)
 ///     });
 /// ```
-pub fn any() -> impl Filter<Extract = (), Error = Infallible> + Copy {
+pub fn any() -> impl Filter<Extract = (), Error = Infallible> + DocumentedFilter + Copy {
     Any
 }
 
@@ -60,6 +61,14 @@ impl FilterBase for Any {
     #[inline]
     fn filter(&self, _: Internal) -> Self::Future {
         AnyFut
+    }
+}
+
+impl DocumentedFilter for Any {
+    type Output = Vec<RouteDocumentation>;
+
+    fn document(&self, item: RouteDocumentation) -> Self::Output {
+        vec![item]
     }
 }
 

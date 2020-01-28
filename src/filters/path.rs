@@ -125,6 +125,7 @@
 //! with an invalid body for route `/right-path-wrong-body` may try matching against `/wrong-path`
 //! and return the error from `/wrong-path` instead of the correct body-related error.
 
+use std::any::TypeId;
 use std::convert::Infallible;
 use std::fmt;
 use std::str::FromStr;
@@ -133,6 +134,7 @@ use futures::future;
 use http::uri::PathAndQuery;
 
 use self::internal::Opaque;
+use crate::document::{DocumentedFilter, DocumentedParameter, ExplicitDocumentation, RouteDocumentation};
 use crate::filter::{filter_fn, one, Filter, FilterBase, Internal, One, Tuple};
 use crate::reject::{self, Rejection};
 use crate::route::{self, Route};
@@ -221,6 +223,17 @@ where
     }
 }
 
+impl<P: AsRef<str>> DocumentedFilter for Exact<P> {
+    type Output = Vec<RouteDocumentation>;
+
+    fn document(&self, mut item: RouteDocumentation) -> Self::Output {
+        let Exact(p) = self;
+        item.path.push('/');
+        item.path.push_str(p.as_ref());
+        vec![item]
+    }
+}
+
 /// Matches the end of a route.
 ///
 /// Note that _not_ including `end()` may result in shorter paths like
@@ -264,13 +277,17 @@ pub fn end() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 ///     });
 /// ```
 pub fn param<T: FromStr + Send + 'static>(
-) -> impl Filter<Extract = One<T>, Error = Rejection> + Copy {
-    filter_segment(|seg| {
+) -> impl Filter<Extract = One<T>, Error = Rejection> + DocumentedFilter + Copy {
+    let filter = filter_segment(|seg| {
         log::trace!("param?: {:?}", seg);
         if seg.is_empty() {
             return Err(reject::not_found());
         }
         T::from_str(seg).map(one).map_err(|_| reject::not_found())
+    });
+    ExplicitDocumentation::new(filter, |path| {
+        path.path = format!("{}/{{{}}}", path.path, path.parameters.len());
+        path.parameters.push(DocumentedParameter{ name: "param".to_string(), parameter_type: TypeId::of::<T>().into(), description: None })
     })
 }
 

@@ -6,6 +6,7 @@ use futures::{ready, TryFuture};
 use pin_project::pin_project;
 
 use super::{Filter, FilterBase, Func, Internal};
+use crate::document::{DocumentedFilter, DocumentedReply, RouteDocumentation};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Map<T, F> {
@@ -27,6 +28,23 @@ where
             extract: self.filter.filter(Internal),
             callback: self.callback.clone(),
         }
+    }
+}
+
+impl<T, F, D> DocumentedFilter for Map<T, F>
+    where
+        T: Filter + DocumentedFilter,
+        F: Func<T::Extract, Output=D> + Clone + Send,
+        D: DocumentedReply,
+{
+    type Output = Vec<RouteDocumentation>;
+
+    fn document(&self, item: RouteDocumentation) -> Self::Output {
+        let Map{ filter, .. } = self;
+        filter.document(item)
+            .into_iter()
+            .flat_map(|item| D::document(item).into_iter())
+            .collect()
     }
 }
 

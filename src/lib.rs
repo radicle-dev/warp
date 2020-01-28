@@ -84,6 +84,7 @@
 //!
 //! [Filter]: trait.Filter.html
 
+pub mod document;
 #[macro_use]
 mod error;
 mod filter;

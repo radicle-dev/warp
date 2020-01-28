@@ -6,6 +6,7 @@ use futures::ready;
 use pin_project::{pin_project, project};
 
 use super::{Combine, Filter, FilterBase, HList, Internal, Tuple};
+use crate::document::{DocumentedFilter, RouteDocumentation};
 use crate::reject::CombineRejection;
 
 #[derive(Clone, Copy, Debug)]
@@ -31,6 +32,22 @@ where
         AndFuture {
             state: State::First(self.first.filter(Internal), self.second.clone()),
         }
+    }
+}
+
+impl<T, U> DocumentedFilter for And<T, U>
+    where
+        T: DocumentedFilter,
+        U: DocumentedFilter
+{
+    type Output = Vec<RouteDocumentation>;
+
+    fn document(&self, item: RouteDocumentation) -> Self::Output {
+        let And{ first, second } = self;
+        first.document(item)
+            .into_iter()
+            .flat_map(|item| second.document(item))
+            .collect::<Vec<_>>()
     }
 }
 
