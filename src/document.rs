@@ -21,12 +21,20 @@ pub trait DocumentedReply {
 
 #[derive(Clone, Debug, Default)]
 pub struct RouteDocumentation {
+    pub cookies: Vec<DocumentedCookie>,
     pub headers: Vec<DocumentedHeader>,
     pub method: Option<Method>,
     pub parameters: Vec<DocumentedParameter>,
     pub path: String,
     pub queries: Vec<DocumentedQuery>,
     pub responses: HashMap<u16, DocumentedResponse>,
+}
+
+#[derive(Clone, Debug)]
+pub struct DocumentedCookie {
+    pub name: String,
+    pub description: Option<String>,
+    pub required: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -51,7 +59,7 @@ pub struct DocumentedQuery {
     pub required: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct DocumentedResponse {
     pub description: String,
     pub headers: Vec<DocumentedHeader>,
@@ -63,29 +71,62 @@ pub struct DocumentedResponseBody {
     pub body: DocumentedType,
     pub mime: Option<String>,
 }
+impl Default for DocumentedResponseBody {
+    fn default() -> Self {
+        Self {
+            body: DocumentedType::Object(HashMap::default()),
+            mime: None,
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub enum DocumentedType {
-    Integer(Option<String>),
-    String(Option<String>),
+    Array(Box<DocumentedType>),
     Object(HashMap<String, DocumentedType>),
+    Primitive{ ty: InternalDocumentedType, documentation: Option<String>, required: bool},
+}
+impl DocumentedType {
+    pub fn boolean() -> Self {
+        Self::Primitive{ ty: InternalDocumentedType::Boolean, documentation: None, required: true }
+    }
+    pub fn float() -> Self {
+        Self::Primitive{ ty: InternalDocumentedType::Float, documentation: None, required: true }
+    }
+    pub fn integer() -> Self {
+        Self::Primitive{ ty: InternalDocumentedType::Integer, documentation: None, required: true }
+    }
+    pub fn string() -> Self {
+        Self::Primitive{ ty: InternalDocumentedType::String, documentation: None, required: true }
+    }
+    pub fn object(fields: HashMap<String, DocumentedType>) -> Self {
+        Self::Object(fields)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum InternalDocumentedType {
+    Boolean,
+    Float,
+    Integer,
+    String,
 }
 impl From<TypeId> for DocumentedType {
     fn from(id: TypeId) -> Self {
         // A HashMap initialised with Once might be better.
         match id {
-            t if t == TypeId::of::<u8>() => Self::Integer(None),
-            t if t == TypeId::of::<u16>() => Self::Integer(None),
-            t if t == TypeId::of::<u32>() => Self::Integer(None),
-            t if t == TypeId::of::<u64>() => Self::Integer(None),
-            t if t == TypeId::of::<u128>() => Self::Integer(None),
-            t if t == TypeId::of::<i8>() => Self::Integer(None),
-            t if t == TypeId::of::<i16>() => Self::Integer(None),
-            t if t == TypeId::of::<i32>() => Self::Integer(None),
-            t if t == TypeId::of::<i64>() => Self::Integer(None),
-            t if t == TypeId::of::<i128>() => Self::Integer(None),
-            t if t == TypeId::of::<String>() => Self::String(None),
-            _ => Self::String(None),
+            t if t == TypeId::of::<u8>() => Self::integer(),
+            t if t == TypeId::of::<u16>() => Self::integer(),
+            t if t == TypeId::of::<u32>() => Self::integer(),
+            t if t == TypeId::of::<u64>() => Self::integer(),
+            t if t == TypeId::of::<u128>() => Self::integer(),
+            t if t == TypeId::of::<i8>() => Self::integer(),
+            t if t == TypeId::of::<i16>() => Self::integer(),
+            t if t == TypeId::of::<i32>() => Self::integer(),
+            t if t == TypeId::of::<i64>() => Self::integer(),
+            t if t == TypeId::of::<i128>() => Self::integer(),
+            t if t == TypeId::of::<String>() => Self::string(),
+            _ => Self::object(HashMap::default()),
         }
     }
 }
@@ -129,11 +170,12 @@ where F: Fn(&mut RouteDocumentation) {
 }
 
 pub fn to_openapi(routes: Vec<RouteDocumentation>) -> OpenAPI {
-    use openapiv3::{Header, IntegerType, MediaType, ObjectType, Operation, Parameter, ParameterData, ParameterSchemaOrContent, PathStyle, Response, Schema, SchemaData, SchemaKind, StatusCode, StringType, Type as OpenApiType};
+    use openapiv3::{ArrayType, Header, IntegerType, MediaType, NumberType, ObjectType, Operation, Parameter, ParameterData, ParameterSchemaOrContent, PathStyle, Response, Schema, SchemaData, SchemaKind, StatusCode, StringType, Type as OpenApiType};
 
     let paths = routes.into_iter()
         .map(|route| {
             let RouteDocumentation{
+                cookies,
                 headers,
                 method,
                 parameters,
@@ -146,8 +188,19 @@ pub fn to_openapi(routes: Vec<RouteDocumentation>) -> OpenAPI {
 
             fn documented_type_to_openapi(t: DocumentedType) -> Schema {
                 match t {
+                    DocumentedType::Array(i) => {
+                        Schema {
+                            schema_data: SchemaData::default(),
+                            schema_kind: SchemaKind::Type(OpenApiType::Array(ArrayType{
+                                items: ReferenceOr::Item(Box::new(documented_type_to_openapi(*i))),
+                                min_items: None,
+                                max_items: None,
+                                unique_items: false,
+                            }))
+                        }
+                    }
                     DocumentedType::Object(p) => {
-                        Schema{
+                        Schema {
                             schema_data: SchemaData::default(),
                             schema_kind: SchemaKind::Type(OpenApiType::Object(ObjectType{
                                 properties: p.into_iter()
@@ -156,23 +209,20 @@ pub fn to_openapi(routes: Vec<RouteDocumentation>) -> OpenAPI {
                                 ..ObjectType::default()
                             }))
                         }
-                    },
-                    DocumentedType::String(s) => {
-                        Schema{
-                            schema_data: SchemaData{
-                                description: s,
-                                ..SchemaData::default()
-                            },
-                            schema_kind: SchemaKind::Type(OpenApiType::String(StringType::default())),
-                        }
                     }
-                    DocumentedType::Integer(i) => {
-                        Schema{
+                    DocumentedType::Primitive{ty, documentation, required} => {
+                        Schema {
                             schema_data: SchemaData{
-                                description: i,
+                                description: documentation,
+                                nullable: !required,
                                 ..SchemaData::default()
                             },
-                            schema_kind: SchemaKind::Type(OpenApiType::Integer(IntegerType::default())),
+                            schema_kind: SchemaKind::Type(match ty {
+                                InternalDocumentedType::Boolean => OpenApiType::Boolean{},
+                                InternalDocumentedType::Float => OpenApiType::Number(NumberType::default()),
+                                InternalDocumentedType::Integer => OpenApiType::Integer(IntegerType::default()),
+                                InternalDocumentedType::String => OpenApiType::String(StringType::default()),
+                            }),
                         }
                     }
                 }
@@ -225,6 +275,24 @@ pub fn to_openapi(routes: Vec<RouteDocumentation>) -> OpenAPI {
                             example: None,
                             examples: Default::default(),
                         },
+                    }))
+            );
+            operation.parameters.extend(
+                cookies.into_iter()
+                    .map(|cookie| ReferenceOr::Item(Parameter::Cookie{
+                        style: Default::default(),
+                        parameter_data: ParameterData {
+                            name: cookie.name,
+                            description: cookie.description,
+                            required: cookie.required,
+                            deprecated: Some(false),
+                            format: ParameterSchemaOrContent::Schema(ReferenceOr::Item(Schema{
+                                schema_data: SchemaData::default(),
+                                schema_kind: SchemaKind::Type(OpenApiType::String(StringType::default())),
+                            })),
+                            example: None,
+                            examples: Default::default(),
+                        }
                     }))
             );
 

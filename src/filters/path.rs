@@ -286,8 +286,9 @@ pub fn param<T: FromStr + Send + 'static>(
         T::from_str(seg).map(one).map_err(|_| reject::not_found())
     });
     ExplicitDocumentation::new(filter, |path| {
-        path.path = format!("{}/{{{}}}", path.path, path.parameters.len());
-        path.parameters.push(DocumentedParameter{ name: "param".to_string(), parameter_type: TypeId::of::<T>().into(), description: None })
+        let index = path.parameters.len();
+        path.path = format!("{}/{{{}}}", path.path, index);
+        path.parameters.push(DocumentedParameter{ name: format!("param{}", index+1), parameter_type: TypeId::of::<T>().into(), description: None })
     })
 }
 

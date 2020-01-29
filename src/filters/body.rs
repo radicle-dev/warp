@@ -17,6 +17,7 @@ use serde::de::DeserializeOwned;
 use serde_json;
 use serde_urlencoded;
 
+use crate::document::{DocumentedFilter, DocumentedResponse, DocumentedHeader, ExplicitDocumentation};
 use crate::filter::{filter_fn, filter_fn_one, Filter, FilterBase};
 use crate::reject::{self, Rejection};
 
@@ -48,8 +49,8 @@ pub(crate) fn body() -> impl Filter<Extract = (Body,), Error = Rejection> + Copy
 /// let upload = warp::body::content_length_limit(4096)
 ///     .and(warp::body::aggregate());
 /// ```
-pub fn content_length_limit(limit: u64) -> impl Filter<Extract = (), Error = Rejection> + Copy {
-    crate::filters::header::header2()
+pub fn content_length_limit(limit: u64) -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = crate::filters::header::header2()
         .map_err(crate::filter::Internal, |_| {
             log::debug!("content-length missing");
             reject::length_required()
@@ -62,7 +63,18 @@ pub fn content_length_limit(limit: u64) -> impl Filter<Extract = (), Error = Rej
                 future::err(reject::payload_too_large())
             }
         })
-        .untuple_one()
+        .untuple_one();
+    ExplicitDocumentation::new(filter, move |route| {
+        route.headers.push(DocumentedHeader{
+            name: "content-length".into(),
+            description: format!("Must be a value below {} bytes.", limit).into(),
+            required: true,
+        });
+        route.responses.insert(413, DocumentedResponse {
+            description: "`content-length` header is missing, is invalid, or has a number larger than the limit provided.".into(),
+            ..Default::default()
+        });
+    })
 }
 
 /// Create a `Filter` that extracts the request body as a `futures::Stream`.
@@ -170,15 +182,16 @@ pub fn aggregate() -> impl Filter<Extract = (impl Buf,), Error = Rejection> + Co
 ///         "Got a JSON body!"
 ///     });
 /// ```
-pub fn json<T: DeserializeOwned + Send>() -> impl Filter<Extract = (T,), Error = Rejection> + Copy {
-    is_content_type::<Json>().and(aggregate()).and_then(|buf| {
+pub fn json<T: DeserializeOwned + Send>() -> impl Filter<Extract = (T,), Error = Rejection> + DocumentedFilter + Copy {
+    let filter = is_content_type::<Json>().and(aggregate()).and_then(|buf| {
         async move {
             Json::decode(buf).map_err(|err| {
                 log::debug!("request json body error: {}", err);
                 reject::known(BodyDeserializeError { cause: err })
             })
         }
-    })
+    });
+    ExplicitDocumentation::new(filter, |_| {})
 }
 
 /// Returns a `Filter` that matches any request and extracts a
