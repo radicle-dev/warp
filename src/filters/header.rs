@@ -11,7 +11,7 @@ use futures::future;
 use headers::{Header, HeaderMapExt};
 use http::HeaderMap;
 
-use crate::document::{DocumentedFilter, DocumentedHeader, ExplicitDocumentation};
+use crate::document::{DocumentedHeader, ExplicitDocumentation};
 use crate::filter::{filter_fn, filter_fn_one, Filter, One};
 use crate::reject::{self, Rejection};
 
@@ -36,7 +36,7 @@ use crate::reject::{self, Rejection};
 /// ```
 pub fn header<T: FromStr + Send + 'static>(
     name: &'static str,
-) -> impl Filter<Extract = One<T>, Error = Rejection> + DocumentedFilter + Copy {
+) -> impl Filter<Extract = One<T>, Error = Rejection> + Copy {
     let filter = filter_fn_one(move |route| {
         log::trace!("header({:?})", name);
         let route = route
@@ -78,7 +78,7 @@ pub(crate) fn header2<T: Header + Send + 'static>(
 /// ```
 pub fn optional<T>(
     name: &'static str,
-) -> impl Filter<Extract = One<Option<T>>, Error = Rejection> + DocumentedFilter + Copy
+) -> impl Filter<Extract = One<Option<T>>, Error = Rejection> + Copy
 where
     T: FromStr + Send + 'static,
 {
@@ -143,7 +143,7 @@ where
 pub fn exact(
     name: &'static str,
     value: &'static str,
-) -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+) -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = filter_fn(move |route| {
         log::trace!("exact?({:?}, {:?})", name, value);
         let route = route
@@ -178,7 +178,7 @@ pub fn exact(
 pub fn exact_ignore_case(
     name: &'static str,
     value: &'static str,
-) -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+) -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = filter_fn(move |route| {
         log::trace!("exact_ignore_case({:?}, {:?})", name, value);
         let route = route
@@ -211,7 +211,6 @@ pub fn exact_ignore_case(
 ///         format!("header count: {}", headers.len())
 ///     });
 /// ```
-pub fn headers_cloned() -> impl Filter<Extract = One<HeaderMap>, Error = Infallible> + DocumentedFilter + Copy {
-    let filter = filter_fn_one(|route| future::ok(route.headers().clone()));
-    ExplicitDocumentation::new(filter, |_|())
+pub fn headers_cloned() -> impl Filter<Extract = One<HeaderMap>, Error = Infallible> + Copy {
+    filter_fn_one(|route| future::ok(route.headers().clone()))
 }

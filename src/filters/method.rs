@@ -9,7 +9,7 @@
 use futures::future;
 use http::Method;
 
-use crate::document::{DocumentedFilter, ExplicitDocumentation};
+use crate::document::ExplicitDocumentation;
 use crate::filter::{filter_fn, filter_fn_one, Filter, One};
 use crate::reject::Rejection;
 use std::convert::Infallible;
@@ -23,7 +23,7 @@ use std::convert::Infallible;
 ///
 /// let get_only = warp::get().map(warp::reply);
 /// ```
-pub fn get() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+pub fn get() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::GET);
     ExplicitDocumentation::new(filter, |item| item.method = Some(Method::GET))
 }
@@ -37,7 +37,7 @@ pub fn get() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter 
 ///
 /// let post_only = warp::post().map(warp::reply);
 /// ```
-pub fn post() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+pub fn post() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::POST);
     ExplicitDocumentation::new(filter, |item| item.method = Some(Method::POST))
 }
@@ -51,7 +51,7 @@ pub fn post() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter
 ///
 /// let put_only = warp::put().map(warp::reply);
 /// ```
-pub fn put() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+pub fn put() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::PUT);
     ExplicitDocumentation::new(filter, |item| item.method = Some(Method::PUT))
 }
@@ -65,7 +65,7 @@ pub fn put() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter 
 ///
 /// let delete_only = warp::delete().map(warp::reply);
 /// ```
-pub fn delete() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+pub fn delete() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::DELETE);
     ExplicitDocumentation::new(filter, |item| item.method = Some(Method::DELETE))
 }
@@ -79,7 +79,7 @@ pub fn delete() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilt
 ///
 /// let head_only = warp::head().map(warp::reply);
 /// ```
-pub fn head() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+pub fn head() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::HEAD);
     ExplicitDocumentation::new(filter, |item| item.method = Some(Method::HEAD))
 }
@@ -93,7 +93,7 @@ pub fn head() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter
 ///
 /// let options_only = warp::options().map(warp::reply);
 /// ```
-pub fn options() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+pub fn options() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::OPTIONS);
     ExplicitDocumentation::new(filter, |item| item.method = Some(Method::OPTIONS))
 }
@@ -107,7 +107,7 @@ pub fn options() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFil
 ///
 /// let patch_only = warp::patch().map(warp::reply);
 /// ```
-pub fn patch() -> impl Filter<Extract = (), Error = Rejection> + DocumentedFilter + Copy {
+pub fn patch() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::PATCH);
     ExplicitDocumentation::new(filter, |item| item.method = Some(Method::PATCH))
 }

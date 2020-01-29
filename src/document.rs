@@ -3,21 +3,9 @@
 use http::Method;
 use openapiv3::{OpenAPI, PathItem, ReferenceOr};
 
-use crate::filter::{FilterBase, Internal};
+use crate::filter::{Filter, FilterBase, Internal};
 
 use std::{any::TypeId, collections::HashMap, fmt::Debug, iter::IntoIterator};
-
-pub trait DocumentedFilter {
-    type Output: IntoIterator<Item=RouteDocumentation>;
-
-    fn document(&self, route: RouteDocumentation) -> Self::Output;
-}
-
-pub trait DocumentedReply {
-    type Output: IntoIterator<Item=RouteDocumentation>;
-
-    fn document(route: RouteDocumentation) -> Self::Output;
-}
 
 #[derive(Clone, Debug, Default)]
 pub struct RouteDocumentation {
@@ -131,10 +119,12 @@ impl From<TypeId> for DocumentedType {
     }
 }
 
-pub fn document<F: DocumentedFilter>(filter: F) -> Vec<RouteDocumentation> {
-    filter.document(RouteDocumentation::default())
-        .into_iter()
-        .collect()
+pub fn describe<F: Filter>(filter: F) -> Vec<RouteDocumentation> {
+    let mut routes = filter.describe(RouteDocumentation::default());
+    routes.iter_mut()
+        .filter(|route| route.path.is_empty())
+        .for_each(|route| route.path.push('/'));
+    routes
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -157,15 +147,11 @@ where T: FilterBase {
     fn filter(&self, internal: Internal) -> Self::Future {
         self.item.filter(internal)
     }
-}
-impl<T, F> DocumentedFilter for ExplicitDocumentation<T, F>
-where F: Fn(&mut RouteDocumentation) {
-    type Output = Vec<RouteDocumentation>;
 
-    fn document(&self, mut item: RouteDocumentation) -> Self::Output {
+    fn describe(&self, mut route: RouteDocumentation) -> Vec<RouteDocumentation> {
         let ExplicitDocumentation{ callback, .. } = self;
-        (callback)(&mut item);
-        vec![item]
+        (callback)(&mut route);
+        vec![route]
     }
 }
 
@@ -343,13 +329,5 @@ pub fn to_openapi(routes: Vec<RouteDocumentation>) -> OpenAPI {
         openapi: "3.0.0".into(),
         paths,
         ..OpenAPI::default()
-    }
-}
-
-impl<S: Into<String>> DocumentedReply for S {
-    type Output = Vec<RouteDocumentation>;
-
-    fn document(path: RouteDocumentation) -> Self::Output {
-        vec![path]
     }
 }

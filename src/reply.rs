@@ -37,9 +37,7 @@ use std::borrow::Cow;
 use std::convert::TryFrom;
 use std::error::Error as StdError;
 use std::fmt;
-use std::marker::PhantomData;
 
-use crate::document::{DocumentedReply, RouteDocumentation};
 use crate::generic::{Either, One};
 use http::header::{HeaderName, HeaderValue, CONTENT_TYPE};
 use http::StatusCode;
@@ -101,7 +99,7 @@ pub fn reply() -> impl Reply {
 /// If a type fails to be serialized into JSON, the error is logged at the
 /// `error` level, and the returned `impl Reply` will be an empty
 /// `500 Internal Server Error` response.
-pub fn json<T>(val: &T) -> Json<T>
+pub fn json<T>(val: &T) -> Json
 where
     T: Serialize,
 {
@@ -109,18 +107,16 @@ where
         inner: serde_json::to_vec(val).map_err(|err| {
             log::error!("reply::json error: {}", err);
         }),
-        phantom_: PhantomData::default(),
     }
 }
 
 /// A JSON formatted reply.
 #[allow(missing_debug_implementations)]
-pub struct Json<T> {
+pub struct Json {
     inner: Result<Vec<u8>, ()>,
-    phantom_: PhantomData<fn() -> T>, // Compiler complains about T not implementing Sync or Share
 }
 
-impl<T> Reply for Json<T> {
+impl Reply for Json {
     #[inline]
     fn into_response(self) -> Response {
         match self.inner {
@@ -132,14 +128,6 @@ impl<T> Reply for Json<T> {
             }
             Err(()) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
         }
-    }
-}
-
-impl<T: DocumentedReply> DocumentedReply for Json<T> {
-    type Output = T::Output;
-
-    fn document(route: RouteDocumentation) -> Self::Output {
-        T::document(route)
     }
 }
 

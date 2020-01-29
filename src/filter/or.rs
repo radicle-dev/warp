@@ -6,7 +6,7 @@ use futures::{ready, TryFuture};
 use pin_project::{pin_project, project};
 
 use super::{Filter, FilterBase, Internal};
-use crate::document::{DocumentedFilter, RouteDocumentation};
+use crate::document::RouteDocumentation;
 use crate::generic::Either;
 use crate::reject::CombineRejection;
 use crate::route;
@@ -37,20 +37,12 @@ where
             original_path_index: PathIndex(idx),
         }
     }
-}
 
-impl<T, U> DocumentedFilter for Or<T, U>
-where
-    T: DocumentedFilter,
-    U: DocumentedFilter,
-{
-    type Output = Vec<RouteDocumentation>;
-
-    fn document(&self, item: RouteDocumentation) -> Self::Output {
+    fn describe(&self, route: RouteDocumentation) -> Vec<RouteDocumentation> {
         let Or{ first, second } = self;
-        first.document(item.clone())
+        first.describe(route.clone())
             .into_iter()
-            .chain(second.document(item.clone()))
+            .chain(second.describe(route.clone()))
             .collect()
     }
 }

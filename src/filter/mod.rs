@@ -16,6 +16,7 @@ use std::pin::Pin;
 
 use futures::{future, TryFuture, TryFutureExt};
 
+use crate::document::RouteDocumentation;
 pub(crate) use crate::generic::{one, Combine, Either, Func, HList, One, Tuple};
 use crate::reject::{CombineRejection, IsReject, Rejection};
 use crate::route::{self, Route};
@@ -51,6 +52,10 @@ pub trait FilterBase {
             filter: self,
             callback: fun,
         }
+    }
+
+    fn describe(&self, route: RouteDocumentation) -> Vec<RouteDocumentation> {
+        vec![route]
     }
 }
 

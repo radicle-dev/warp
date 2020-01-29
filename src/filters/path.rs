@@ -134,7 +134,7 @@ use futures::future;
 use http::uri::PathAndQuery;
 
 use self::internal::Opaque;
-use crate::document::{DocumentedFilter, DocumentedParameter, ExplicitDocumentation, RouteDocumentation};
+use crate::document::{DocumentedParameter, ExplicitDocumentation, RouteDocumentation};
 use crate::filter::{filter_fn, one, Filter, FilterBase, Internal, One, Tuple};
 use crate::reject::{self, Rejection};
 use crate::route::{self, Route};
@@ -221,16 +221,12 @@ where
             }))
         })
     }
-}
 
-impl<P: AsRef<str>> DocumentedFilter for Exact<P> {
-    type Output = Vec<RouteDocumentation>;
-
-    fn document(&self, mut item: RouteDocumentation) -> Self::Output {
+    fn describe(&self, mut route: RouteDocumentation) -> Vec<RouteDocumentation> {
         let Exact(p) = self;
-        item.path.push('/');
-        item.path.push_str(p.as_ref());
-        vec![item]
+        route.path.push('/');
+        route.path.push_str(p.as_ref());
+        vec![route]
     }
 }
 
@@ -277,7 +273,7 @@ pub fn end() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 ///     });
 /// ```
 pub fn param<T: FromStr + Send + 'static>(
-) -> impl Filter<Extract = One<T>, Error = Rejection> + DocumentedFilter + Copy {
+) -> impl Filter<Extract = One<T>, Error = Rejection> + Copy {
     let filter = filter_segment(|seg| {
         log::trace!("param?: {:?}", seg);
         if seg.is_empty() {
