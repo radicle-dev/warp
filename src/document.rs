@@ -3,9 +3,10 @@
 use http::Method;
 use openapiv3::{OpenAPI, PathItem, ReferenceOr};
 
+use crate::any;
 use crate::filter::{Filter, FilterBase, Internal};
 
-use std::{any::TypeId, collections::HashMap, fmt::Debug, iter::IntoIterator};
+use std::{any::TypeId, collections::HashMap, convert::Infallible, fmt::Debug, iter::IntoIterator};
 
 #[derive(Clone, Debug, Default)]
 pub struct RouteDocumentation {
@@ -127,32 +128,37 @@ pub fn describe<F: Filter>(filter: F) -> Vec<RouteDocumentation> {
     routes
 }
 
+pub fn describe_explicitly<F, D>(filter: F, describe: D) -> ExplicitDocumentation<F, D>
+where
+    F: Filter,
+    D: Fn(&mut RouteDocumentation) + Copy,
+{
+    ExplicitDocumentation{ filter, describe }
+}
+
 #[derive(Copy, Clone, Debug)]
-pub struct ExplicitDocumentation<T, F>
-where F: Fn(&mut RouteDocumentation) {
-    item: T,
-    callback: F,
+pub struct ExplicitDocumentation<F, D> {
+    filter: F,
+    describe: D,
 }
-impl<T, F: Fn(&mut RouteDocumentation)> ExplicitDocumentation<T, F> {
-    pub fn new(item: T, callback: F) -> Self {
-        ExplicitDocumentation{ item, callback }
-    }
-}
-impl<T, F: Fn(&mut RouteDocumentation)> FilterBase for ExplicitDocumentation<T, F>
-where T: FilterBase {
-    type Extract = T::Extract;
-    type Error = T::Error;
-    type Future = T::Future;
+impl<F, D: Fn(&mut RouteDocumentation)> FilterBase for ExplicitDocumentation<F, D>
+where F: FilterBase {
+    type Extract = F::Extract;
+    type Error = F::Error;
+    type Future = F::Future;
     
     fn filter(&self, internal: Internal) -> Self::Future {
-        self.item.filter(internal)
+        self.filter.filter(internal)
     }
 
     fn describe(&self, mut route: RouteDocumentation) -> Vec<RouteDocumentation> {
-        let ExplicitDocumentation{ callback, .. } = self;
-        (callback)(&mut route);
+        (self.describe)(&mut route);
         vec![route]
     }
+}
+
+pub fn description<D: Fn(&mut RouteDocumentation) + Copy>(describe: D) -> impl Filter<Extract = (), Error = Infallible> + Copy {
+    describe_explicitly(any(), describe)
 }
 
 pub fn to_openapi(routes: Vec<RouteDocumentation>) -> OpenAPI {

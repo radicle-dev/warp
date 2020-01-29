@@ -134,7 +134,7 @@ use futures::future;
 use http::uri::PathAndQuery;
 
 use self::internal::Opaque;
-use crate::document::{DocumentedParameter, ExplicitDocumentation, RouteDocumentation};
+use crate::document::{describe_explicitly, DocumentedParameter, RouteDocumentation};
 use crate::filter::{filter_fn, one, Filter, FilterBase, Internal, One, Tuple};
 use crate::reject::{self, Rejection};
 use crate::route::{self, Route};
@@ -281,7 +281,7 @@ pub fn param<T: FromStr + Send + 'static>(
         }
         T::from_str(seg).map(one).map_err(|_| reject::not_found())
     });
-    ExplicitDocumentation::new(filter, |path| {
+    describe_explicitly(filter, |path| {
         let index = path.parameters.len();
         path.path = format!("{}/{{{}}}", path.path, index);
         path.parameters.push(DocumentedParameter{ name: format!("param{}", index+1), parameter_type: TypeId::of::<T>().into(), description: None })

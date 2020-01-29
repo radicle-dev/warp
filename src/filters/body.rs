@@ -17,7 +17,7 @@ use serde::de::DeserializeOwned;
 use serde_json;
 use serde_urlencoded;
 
-use crate::document::{DocumentedResponse, DocumentedHeader, ExplicitDocumentation};
+use crate::document::{describe_explicitly, DocumentedResponse, DocumentedHeader};
 use crate::filter::{filter_fn, filter_fn_one, Filter, FilterBase};
 use crate::reject::{self, Rejection};
 
@@ -64,7 +64,7 @@ pub fn content_length_limit(limit: u64) -> impl Filter<Extract = (), Error = Rej
             }
         })
         .untuple_one();
-    ExplicitDocumentation::new(filter, move |route| {
+    describe_explicitly(filter, move |route| {
         route.headers.push(DocumentedHeader{
             name: "content-length".into(),
             description: format!("Must be a value below {} bytes.", limit).into(),
