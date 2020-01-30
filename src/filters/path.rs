@@ -134,7 +134,7 @@ use futures::future;
 use http::uri::PathAndQuery;
 
 use self::internal::Opaque;
-use crate::document::{describe_explicitly, DocumentedParameter, RouteDocumentation};
+use crate::document::{describe_explicitly, parameter, RouteDocumentation};
 use crate::filter::{filter_fn, one, Filter, FilterBase, Internal, One, Tuple};
 use crate::reject::{self, Rejection};
 use crate::route::{self, Route};
@@ -224,8 +224,7 @@ where
 
     fn describe(&self, mut route: RouteDocumentation) -> Vec<RouteDocumentation> {
         let Exact(p) = self;
-        route.path.push('/');
-        route.path.push_str(p.as_ref());
+        route.push_path(p);
         vec![route]
     }
 }
@@ -284,7 +283,7 @@ pub fn param<T: FromStr + Send + 'static>(
     describe_explicitly(filter, |path| {
         let index = path.parameters.len();
         path.path = format!("{}/{{{}}}", path.path, index);
-        path.parameters.push(DocumentedParameter{ name: format!("param{}", index+1), parameter_type: TypeId::of::<T>().into(), description: None })
+        path.parameter(parameter(format!("param{}", index+1), TypeId::of::<T>()).required(true))
     })
 }
 
