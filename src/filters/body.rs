@@ -17,7 +17,7 @@ use serde::de::DeserializeOwned;
 use serde_json;
 use serde_urlencoded;
 
-use crate::document::{self, describe_explicitly, DocumentedResponse};
+use crate::document;
 use crate::filter::{filter_fn, filter_fn_one, Filter, FilterBase};
 use crate::reject::{self, Rejection};
 
@@ -64,13 +64,13 @@ pub fn content_length_limit(limit: u64) -> impl Filter<Extract = (), Error = Rej
             }
         })
         .untuple_one();
-    describe_explicitly(filter, move |route| {
+    document::explicit(filter, move |route| {
         route.header(
             document::header("content-length")
                 .description(format!("Must be a value below {} bytes.", limit))
                 .required(true)
         );
-        route.response(413, DocumentedResponse::default()
+        route.response(document::response(413, None)
             .description("`content-length` header is missing, is invalid, or has a number larger than the limit provided."))
     })
 }

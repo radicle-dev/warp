@@ -4,7 +4,7 @@ use futures::future;
 use headers::Cookie;
 
 use super::header;
-use crate::document::{self, describe_explicitly, DocumentedResponse};
+use crate::document;
 use crate::filter::{Filter, One};
 use crate::reject::Rejection;
 use std::convert::Infallible;
@@ -20,8 +20,8 @@ pub fn cookie(name: &'static str) -> impl Filter<Extract = One<String>, Error = 
             .ok_or_else(|| crate::reject::missing_cookie(name));
         future::ready(cookie)
     });
-    describe_explicitly(filter, move |route| {
-        route.response(400, DocumentedResponse::default().description("Bad Response"));
+    document::explicit(filter, move |route| {
+        route.response(document::response(400, None).description("Bad Response"));
         route.cookie(document::cookie(name).required(true));
     })
 }
@@ -35,7 +35,7 @@ pub fn optional(
 ) -> impl Filter<Extract = One<Option<String>>, Error = Infallible> + Copy {
     let filter = header::optional2()
         .map(move |opt: Option<Cookie>| opt.and_then(|cookie| cookie.get(name).map(String::from)));
-    describe_explicitly(filter, move |route| {
+    document::explicit(filter, move |route| {
         route.cookie(document::cookie(name).required(false));
     })
 }

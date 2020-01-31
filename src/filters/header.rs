@@ -11,7 +11,7 @@ use futures::future;
 use headers::{Header, HeaderMapExt};
 use http::HeaderMap;
 
-use crate::document::{self, describe_explicitly};
+use crate::document;
 use crate::filter::{filter_fn, filter_fn_one, Filter, One};
 use crate::reject::{self, Rejection};
 
@@ -47,7 +47,7 @@ pub fn header<T: FromStr + Send + 'static>(
             .and_then(|s| T::from_str(s).map_err(|_| reject::invalid_header(name)));
         future::ready(route)
     });
-    describe_explicitly(filter, move |route| {
+    document::explicit(filter, move |route| {
         route.header(document::header(name).required(true))
     })
 }
@@ -98,7 +98,7 @@ where
             None => future::ok(None),
         }
     });
-    describe_explicitly(filter, move |route| {
+    document::explicit(filter, move |route| {
         route.header(document::header(name).required(false))
     })
 }
@@ -159,7 +159,7 @@ pub fn exact(
             });
         future::ready(route)
     });
-    describe_explicitly(filter, move |route| {
+    document::explicit(filter, move |route| {
         route.header(document::header(name).description(format!("Must be set to `{}`.", value)).required(true))
     })
 }
@@ -194,7 +194,7 @@ pub fn exact_ignore_case(
             });
         future::ready(route)
     });
-    describe_explicitly(filter, move |route| {
+    document::explicit(filter, move |route| {
         route.header(document::header(name).description(format!("Must be set to `{}` (case insensitive).", value)).required(true))
     })
 }

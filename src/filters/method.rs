@@ -9,7 +9,7 @@
 use futures::future;
 use http::Method;
 
-use crate::document::describe_explicitly;
+use crate::document;
 use crate::filter::{filter_fn, filter_fn_one, Filter, One};
 use crate::reject::Rejection;
 use std::convert::Infallible;
@@ -25,7 +25,7 @@ use std::convert::Infallible;
 /// ```
 pub fn get() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::GET);
-    describe_explicitly(filter, |route| route.method = Method::GET)
+    document::explicit(filter, |route| route.method = Method::GET)
 }
 
 /// Create a `Filter` that requires the request method to be `POST`.
@@ -39,7 +39,7 @@ pub fn get() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 /// ```
 pub fn post() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::POST);
-    describe_explicitly(filter, |route| route.method = Method::POST)
+    document::explicit(filter, |route| route.method = Method::POST)
 }
 
 /// Create a `Filter` that requires the request method to be `PUT`.
@@ -53,7 +53,7 @@ pub fn post() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 /// ```
 pub fn put() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::PUT);
-    describe_explicitly(filter, |route| route.method = Method::PUT)
+    document::explicit(filter, |route| route.method = Method::PUT)
 }
 
 /// Create a `Filter` that requires the request method to be `DELETE`.
@@ -67,7 +67,7 @@ pub fn put() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 /// ```
 pub fn delete() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::DELETE);
-    describe_explicitly(filter, |route| route.method = Method::DELETE)
+    document::explicit(filter, |route| route.method = Method::DELETE)
 }
 
 /// Create a `Filter` that requires the request method to be `HEAD`.
@@ -81,7 +81,7 @@ pub fn delete() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 /// ```
 pub fn head() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::HEAD);
-    describe_explicitly(filter, |route| route.method = Method::HEAD)
+    document::explicit(filter, |route| route.method = Method::HEAD)
 }
 
 /// Create a `Filter` that requires the request method to be `OPTIONS`.
@@ -95,7 +95,7 @@ pub fn head() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 /// ```
 pub fn options() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::OPTIONS);
-    describe_explicitly(filter, |route| route.method = Method::OPTIONS)
+    document::explicit(filter, |route| route.method = Method::OPTIONS)
 }
 
 /// Create a `Filter` that requires the request method to be `PATCH`.
@@ -109,7 +109,7 @@ pub fn options() -> impl Filter<Extract = (), Error = Rejection> + Copy {
 /// ```
 pub fn patch() -> impl Filter<Extract = (), Error = Rejection> + Copy {
     let filter = method_is(|| &Method::PATCH);
-    describe_explicitly(filter, |route| route.method = Method::PATCH)
+    document::explicit(filter, |route| route.method = Method::PATCH)
 }
 
 /// Extract the `Method` from the request.
