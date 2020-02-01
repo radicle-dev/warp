@@ -329,7 +329,7 @@ impl From<TypeId> for DocumentedType {
     }
 }
 
-pub fn describe<F: Filter>(filter: F) -> Vec<RouteDocumentation> {
+pub fn describe<F: Filter>(filter: &F) -> Vec<RouteDocumentation> {
     let mut routes = filter.describe(RouteDocumentation::default());
     routes.iter_mut()
         .filter(|route| route.path.is_empty())
