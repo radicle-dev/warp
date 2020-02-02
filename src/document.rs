@@ -320,6 +320,50 @@ pub enum InternalDocumentedType {
     String,
 }
 
+pub trait ToDocumentedType {
+    fn document() -> DocumentedType;
+}
+
+macro_rules! document_primitive {
+    ($type_:ty, $documented_type:expr) => {
+        impl ToDocumentedType for $type_ {
+            fn document() -> DocumentedType {
+                $documented_type()
+            }
+        }
+    };
+}
+document_primitive!(u8, integer);
+document_primitive!(u16, integer);
+document_primitive!(u32, integer);
+document_primitive!(u64, integer);
+document_primitive!(u128, integer);
+document_primitive!(usize, integer);
+document_primitive!(i8, integer);
+document_primitive!(i16, integer);
+document_primitive!(i32, integer);
+document_primitive!(i64, integer);
+document_primitive!(i128, integer);
+document_primitive!(isize, integer);
+document_primitive!(String, string);
+document_primitive!(&str, string);
+document_primitive!(f32, float);
+document_primitive!(f64, float);
+
+impl<K, V> ToDocumentedType for HashMap<K, V>
+where V: ToDocumentedType {
+    fn document() -> DocumentedType {
+        map(V::document())
+    }
+}
+
+impl<T> ToDocumentedType for Vec<T>
+where T: ToDocumentedType {
+    fn document() -> DocumentedType {
+        array(T::document())
+    }
+}
+
 impl From<TypeId> for DocumentedType {
     fn from(id: TypeId) -> Self {
         // A HashMap initialised with Once might be better.
@@ -338,6 +382,8 @@ impl From<TypeId> for DocumentedType {
             t if t == TypeId::of::<isize>() => integer(),
             t if t == TypeId::of::<String>() => string(),
             t if t == TypeId::of::<&str>() => string(),
+            t if t == TypeId::of::<f32>() => float(),
+            t if t == TypeId::of::<f64>() => float(),
             _ => object(HashMap::default()),
         }
     }
