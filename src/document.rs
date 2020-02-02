@@ -275,10 +275,14 @@ pub fn object(fields: HashMap<String, DocumentedType>) -> DocumentedType {
 pub fn array<T: Into<Box<DocumentedType>>>(ty: T) -> DocumentedType {
     DocumentedType::Array{ ty: ty.into(), description: None, example: None }
 }
+pub fn map<T: Into<Box<DocumentedType>>>(value_type: T) -> DocumentedType {
+    DocumentedType::Map { value_type: value_type.into(), description: None, example: None }
+}
 
 #[derive(Clone, Debug)]
 pub enum DocumentedType {
     Array{ ty: Box<DocumentedType>, description: Option<String>, example: Option<Value> },
+    Map { value_type: Box<DocumentedType>, description: Option<String>, example: Option<Value> },
     Object{ properties: HashMap<String, DocumentedType>, description: Option<String>, example: Option<Value> },
     Primitive{ ty: InternalDocumentedType, description: Option<String>, required: bool, example: Option<Value> },
 }
@@ -286,6 +290,7 @@ impl DocumentedType {
     pub fn example(mut self, value: Value) -> Self {
         match &mut self {
             Self::Array{ example, .. } => example.replace(value),
+            Self::Map{ example, .. } => example.replace(value),
             Self::Object{ example, .. } => example.replace(value),
             Self::Primitive{ example, .. } => example.replace(value),
         };
@@ -294,6 +299,7 @@ impl DocumentedType {
     pub fn description<S: Into<String>>(mut self, description_: S) -> Self {
 	    match &mut self {
             Self::Array{ description, .. } => description.replace(description_.into()),
+            Self::Map{ description, .. } => description.replace(description_.into()),
             Self::Object{ description, .. } => description.replace(description_.into()),
             Self::Primitive{ description, .. } => description.replace(description_.into()),
         };
@@ -407,9 +413,10 @@ pub fn body<T: Into<DocumentedType>>(type_: T) -> DocumentedBody {
 #[cfg(feature = "openapi")]
 pub fn to_openapi<I: IntoIterator<Item=RouteDocumentation>>(routes: I) -> openapiv3::OpenAPI {
     use indexmap::IndexMap;
-    use openapiv3::{ArrayType, Header, IntegerType, MediaType, NumberType, ObjectType, Operation, OpenAPI,
-        Parameter, ParameterData, ParameterSchemaOrContent, PathItem, PathStyle, ReferenceOr, RequestBody, Response,
-        Schema, SchemaData, SchemaKind, StatusCode, StringType, Type as OpenApiType};
+    use openapiv3::{AdditionalProperties, ArrayType, Header, IntegerType, MediaType, NumberType,
+        ObjectType, Operation, OpenAPI, Parameter, ParameterData, ParameterSchemaOrContent, PathItem,
+        PathStyle, ReferenceOr, RequestBody, Response, Schema, SchemaData, SchemaKind, StatusCode,
+        StringType, Type as OpenApiType};
 
     let mut paths: IndexMap<String, PathItem> = IndexMap::default();
 //	let mut routes = routes.into_iter().collect::<Vec<_>>();
@@ -445,6 +452,19 @@ pub fn to_openapi<I: IntoIterator<Item=RouteDocumentation>>(routes: I) -> openap
                                 max_items: None,
                                 unique_items: false,
                             }))
+                        }
+                    }
+                    DocumentedType::Map { value_type, description, example } => {
+                        Schema {
+                            schema_data: SchemaData {
+                                description,
+                                example,
+                                ..SchemaData::default()
+                            },
+                            schema_kind: SchemaKind::Type(OpenApiType::Object(ObjectType{
+                                additional_properties: Some(AdditionalProperties::Schema(Box::new(ReferenceOr::Item(documented_type_to_openapi(*value_type))))),
+                                ..ObjectType::default()
+                            })),
                         }
                     }
                     DocumentedType::Object{ properties, description, example } => {
