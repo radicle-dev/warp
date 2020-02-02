@@ -350,8 +350,11 @@ pub struct ExplicitDocumentation<F, D> {
     filter: F,
     describe: D,
 }
-impl<F, D: Fn(&mut RouteDocumentation)> FilterBase for ExplicitDocumentation<F, D>
-where F: FilterBase {
+impl<F, D> FilterBase for ExplicitDocumentation<F, D>
+where
+    F: FilterBase,
+    D: Fn(&mut RouteDocumentation),
+{
     type Extract = F::Extract;
     type Error = F::Error;
     type Future = F::Future;
@@ -380,9 +383,8 @@ pub fn document<D: Documentable + Clone>(describe: D) -> impl Filter<Extract = (
 }
 
 /// Sets the description of the route.
-pub fn description<S: Into<String>>(description: S) -> impl Fn(&mut RouteDocumentation) + Clone {
-	let description = description.into();
-    move |route| route.description(description.clone())
+pub fn description<S: Into<String> + Clone>(description: S) -> impl Fn(&mut RouteDocumentation) + Clone {
+    move |route: &mut RouteDocumentation| route.description(description.clone())
 }
 
 /// Adds a response to the route documentation.
