@@ -287,7 +287,8 @@ pub enum DocumentedType {
     Primitive{ ty: InternalDocumentedType, description: Option<String>, required: bool, example: Option<Value> },
 }
 impl DocumentedType {
-    pub fn example(mut self, value: Value) -> Self {
+    pub fn example<V: Into<Value>>(mut self, value: V) -> Self {
+        let value = value.into();
         match &mut self {
             Self::Array{ example, .. } => example.replace(value),
             Self::Map{ example, .. } => example.replace(value),
