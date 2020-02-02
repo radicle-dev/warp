@@ -29,7 +29,7 @@ impl Default for RouteDocumentation {
             headers: Default::default(),
             method: Method::POST,
             parameters: Default::default(),
-            path: Default::default(),
+            path: String::from("/"),
             queries: Default::default(),
             responses: Default::default(),
         }
@@ -52,8 +52,16 @@ impl RouteDocumentation {
         self.push_path(format!("{{{}}}", self.parameters.len()));
         self.parameters.push(parameter);
     }
+	/// The path but with the path parameters having the same name as the parameters instead of index values.
+	pub fn pretty_path(&self) -> String {
+        self.parameters.iter()
+            .enumerate()
+            .fold(self.path.clone(), |path, (i, param)| path.replace(format!("{{{}}}", i).as_str(), format!("{{{}}}", param.name).as_str()))
+    }
     pub fn push_path<S: AsRef<str>>(&mut self, path: S) {
-        self.path.push('/');
+        if !self.path.ends_with('/') {
+            self.path.push('/');
+        }
         self.path.push_str(path.as_ref());
     }
     pub fn query(&mut self, query: DocumentedQuery) {
@@ -330,11 +338,7 @@ impl From<TypeId> for DocumentedType {
 }
 
 pub fn describe<F: Filter>(filter: &F) -> Vec<RouteDocumentation> {
-    let mut routes = filter.describe(RouteDocumentation::default());
-    routes.iter_mut()
-        .filter(|route| route.path.is_empty())
-        .for_each(|route| route.path.push('/'));
-    routes
+    filter.describe(RouteDocumentation::default())
 }
 
 pub fn explicit<F, D>(filter: F, describe: D) -> ExplicitDocumentation<F, D>
@@ -412,6 +416,7 @@ pub fn to_openapi<I: IntoIterator<Item=RouteDocumentation>>(routes: I) -> openap
 //    routes.sort_by_cached_key(|route| route.path.clone()); // Expensive Process
     routes.into_iter()
         .for_each(|route| {
+	        let path = route.pretty_path();
             let RouteDocumentation{
                 bodies,
                 cookies,
@@ -419,7 +424,7 @@ pub fn to_openapi<I: IntoIterator<Item=RouteDocumentation>>(routes: I) -> openap
                 headers,
                 method,
                 parameters,
-                mut path,
+                path: _,
                 queries,
                 responses
             } = route;
@@ -496,9 +501,7 @@ pub fn to_openapi<I: IntoIterator<Item=RouteDocumentation>>(routes: I) -> openap
             }));
             operation.parameters.extend(
                 parameters.into_iter()
-                    .enumerate()
-                    .inspect(|(i, param)| path = path.replace(format!("{{{}}}", i).as_str(), format!("{{{}}}", param.name).as_str()))
-                    .map(|(_, param)| ReferenceOr::Item(Parameter::Path{style: PathStyle::default(), parameter_data: ParameterData{
+                    .map(|param| ReferenceOr::Item(Parameter::Path{style: PathStyle::default(), parameter_data: ParameterData{
                         name: param.name,
                         description: param.description,
                         required: param.required,
