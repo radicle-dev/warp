@@ -6,6 +6,7 @@ use futures::{ready, TryFuture};
 use pin_project::{pin_project, project};
 
 use super::{Filter, FilterBase, Func, Internal};
+use crate::document::RouteDocumentation;
 use crate::generic::Either;
 use crate::reject::IsReject;
 use crate::route;
@@ -33,6 +34,10 @@ where
             state: State::First(self.filter.filter(Internal), self.callback.clone()),
             original_path_index: PathIndex(idx),
         }
+    }
+
+    fn describe(&self, route: RouteDocumentation) -> Vec<RouteDocumentation> {
+        self.filter.describe(route)
     }
 }
 

@@ -6,6 +6,7 @@ use std::sync::Arc;
 use futures::TryFutureExt;
 
 use super::{Filter, FilterBase, Internal, Tuple};
+use crate::document::RouteDocumentation;
 use crate::reject::Rejection;
 
 /// A type representing a boxed `Filter` trait object.
@@ -79,6 +80,10 @@ impl<T: Tuple + Send> FilterBase for BoxedFilter<T> {
     fn filter(&self, _: Internal) -> Self::Future {
         self.filter.filter(Internal)
     }
+
+    fn describe(&self, route: RouteDocumentation) -> Vec<RouteDocumentation> {
+        self.filter.describe(route)
+    }
 }
 
 struct BoxingFilter<F> {
@@ -96,5 +101,9 @@ where
 
     fn filter(&self, _: Internal) -> Self::Future {
         Box::pin(self.filter.filter(Internal).into_future())
+    }
+
+    fn describe(&self, route: RouteDocumentation) -> Vec<RouteDocumentation> {
+        self.filter.describe(route)
     }
 }

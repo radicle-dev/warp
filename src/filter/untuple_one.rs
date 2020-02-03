@@ -6,6 +6,7 @@ use futures::{ready, TryFuture};
 use pin_project::pin_project;
 
 use super::{Filter, FilterBase, Internal, Tuple};
+use crate::document::RouteDocumentation;
 
 #[derive(Clone, Copy, Debug)]
 pub struct UntupleOne<F> {
@@ -25,6 +26,10 @@ where
         UntupleOneFuture {
             extract: self.filter.filter(Internal),
         }
+    }
+
+    fn describe(&self, route: RouteDocumentation) -> Vec<RouteDocumentation> {
+        self.filter.describe(route)
     }
 }
 

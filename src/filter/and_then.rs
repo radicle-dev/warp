@@ -6,6 +6,7 @@ use futures::{ready, TryFuture};
 use pin_project::{pin_project, project};
 
 use super::{Filter, FilterBase, Func, Internal};
+use crate::document::RouteDocumentation;
 use crate::reject::CombineRejection;
 
 #[derive(Clone, Copy, Debug)]
@@ -29,6 +30,10 @@ where
         AndThenFuture {
             state: State::First(self.filter.filter(Internal), self.callback.clone()),
         }
+    }
+
+    fn describe(&self, route: RouteDocumentation) -> Vec<RouteDocumentation> {
+        self.filter.describe(route)
     }
 }
 
