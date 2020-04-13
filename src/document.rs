@@ -1,6 +1,7 @@
 #![allow(missing_docs)]
 
 use http::Method;
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::any;
@@ -375,22 +376,22 @@ pub enum DocumentedType {
     },
 }
 impl DocumentedType {
-    pub fn example<V: Into<Value>>(mut self, value: V) -> Self {
-        let value = value.into();
-        match &mut self {
-            Self::Array { example, .. } => example.replace(value),
-            Self::Map { example, .. } => example.replace(value),
-            Self::Object { example, .. } => example.replace(value),
-            Self::Primitive { example, .. } => example.replace(value),
-        };
-        self
-    }
     pub fn description<S: Into<String>>(mut self, description_: S) -> Self {
         match &mut self {
             Self::Array { description, .. } => description.replace(description_.into()),
             Self::Map { description, .. } => description.replace(description_.into()),
             Self::Object { description, .. } => description.replace(description_.into()),
             Self::Primitive { description, .. } => description.replace(description_.into()),
+        };
+        self
+    }
+    pub fn example<S: Serialize>(mut self, value: S) -> Self {
+        let value = serde_json::value::to_value(value).unwrap();
+        match &mut self {
+            Self::Array { example, .. } => example.replace(value),
+            Self::Map { example, .. } => example.replace(value),
+            Self::Object { example, .. } => example.replace(value),
+            Self::Primitive { example, .. } => example.replace(value),
         };
         self
     }
