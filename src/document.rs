@@ -27,6 +27,7 @@ pub struct RouteDocumentation {
     pub path: String,
     pub queries: Vec<DocumentedQuery>,
     pub responses: HashSet<DocumentedResponse>,
+    pub tags: Vec<String>,
 }
 impl Default for RouteDocumentation {
     fn default() -> Self {
@@ -40,6 +41,7 @@ impl Default for RouteDocumentation {
             path: String::from("/"),
             queries: Default::default(),
             responses: Default::default(),
+            tags: Default::default(),
         }
     }
 }
@@ -83,6 +85,9 @@ impl RouteDocumentation {
     }
     pub fn response<R: Into<DocumentedResponse>>(&mut self, response: R) {
         self.responses.insert(response.into());
+    }
+    pub fn tag<T: Into<String>>(&mut self, tag: T) {
+        self.tags.push(tag.into());
     }
 }
 
@@ -563,6 +568,11 @@ pub fn response<B: Into<Option<DocumentedBody>>>(status: u16, body: B) -> Docume
     }
 }
 
+/// Adds a tag to the route documentation.
+pub fn tag<T: Into<String> + Clone>(tag: T) -> impl Fn(&mut RouteDocumentation) + Clone {
+    move |route: &mut RouteDocumentation| route.tag(tag.clone())
+}
+
 pub fn body<T: Into<DocumentedType>>(type_: T) -> DocumentedBody {
     DocumentedBody::default().body(type_)
 }
@@ -612,8 +622,10 @@ pub fn to_openapi<I: IntoIterator<Item = RouteDocumentation>>(routes: I) -> open
             path: _,
             queries,
             responses,
+            tags,
         } = route;
         let mut operation = Operation::default();
+        operation.tags = tags;
 
         fn documented_type_to_openapi(t: DocumentedType) -> Schema {
             match t {
