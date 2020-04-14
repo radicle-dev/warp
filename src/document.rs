@@ -345,6 +345,14 @@ pub fn array<T: Into<Box<DocumentedType>>>(ty: T) -> DocumentedType {
         nullable: None,
     }
 }
+pub fn one_of<V: Into<Vec<DocumentedType>>>(variants: V) -> DocumentedType {
+    DocumentedType::OneOf {
+        variants: variants.into(),
+        description: None,
+        example: None,
+        nullable: None,
+    }
+}
 pub fn map<T: Into<Box<DocumentedType>>>(value_type: T) -> DocumentedType {
     DocumentedType::Map {
         value_type: value_type.into(),
@@ -374,6 +382,12 @@ pub enum DocumentedType {
         example: Option<Value>,
         nullable: Option<bool>,
     },
+    OneOf {
+        variants: Vec<DocumentedType>,
+        description: Option<String>,
+        example: Option<Value>,
+        nullable: Option<bool>,
+    },
     Primitive {
         ty: InternalDocumentedType,
         description: Option<String>,
@@ -387,6 +401,7 @@ impl DocumentedType {
             Self::Array { description, .. } => description.replace(description_.into()),
             Self::Map { description, .. } => description.replace(description_.into()),
             Self::Object { description, .. } => description.replace(description_.into()),
+            Self::OneOf { description, .. } => description.replace(description_.into()),
             Self::Primitive { description, .. } => description.replace(description_.into()),
         };
         self
@@ -397,6 +412,7 @@ impl DocumentedType {
             Self::Array { example, .. } => example.replace(value),
             Self::Map { example, .. } => example.replace(value),
             Self::Object { example, .. } => example.replace(value),
+            Self::OneOf { example, .. } => example.replace(value),
             Self::Primitive { example, .. } => example.replace(value),
         };
         self
@@ -406,6 +422,7 @@ impl DocumentedType {
             Self::Array { nullable, .. } => nullable.replace(nullable_.into()),
             Self::Map { nullable, .. } => nullable.replace(nullable_.into()),
             Self::Object { nullable, .. } => nullable.replace(nullable_.into()),
+            Self::OneOf { nullable, .. } => nullable.replace(nullable_.into()),
             Self::Primitive { nullable, .. } => nullable.replace(nullable_.into()),
         };
         self
@@ -691,6 +708,25 @@ pub fn to_openapi<I: IntoIterator<Item = RouteDocumentation>>(routes: I) -> open
                             .collect(),
                         ..ObjectType::default()
                     })),
+                },
+                DocumentedType::OneOf {
+                    variants,
+                    description,
+                    example,
+                    nullable,
+                } => Schema {
+                    schema_data: SchemaData {
+                        description,
+                        example,
+                        nullable: nullable.unwrap_or(false),
+                        ..SchemaData::default()
+                    },
+                    schema_kind: SchemaKind::OneOf {
+                        one_of: variants
+                            .iter()
+                            .map(|v| ReferenceOr::Item(documented_type_to_openapi(v.clone())))
+                            .collect(),
+                    },
                 },
                 DocumentedType::Primitive {
                     ty,
