@@ -614,6 +614,17 @@ where
     })
 }
 
+pub fn tail(
+    name: &'static str,
+    description: &'static str,
+) -> impl Filter<Extract = crate::filter::One<crate::path::Tail>, Error = Infallible> + Copy {
+    let filter = crate::path::tail();
+
+    explicit(filter, move |route: &mut RouteDocumentation| {
+        route.parameter(parameter(name, TypeId::of::<String>()).description(description));
+    })
+}
+
 #[cfg(feature = "openapi")]
 pub fn to_openapi<I: IntoIterator<Item = RouteDocumentation>>(routes: I) -> openapiv3::OpenAPI {
     use indexmap::IndexMap;
