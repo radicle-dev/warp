@@ -329,14 +329,6 @@ pub fn string() -> DocumentedType {
         nullable: None,
     }
 }
-pub fn object(fields: HashMap<String, DocumentedType>) -> DocumentedType {
-    DocumentedType::Object {
-        properties: fields,
-        description: None,
-        example: None,
-        nullable: None,
-    }
-}
 pub fn array<T: Into<Box<DocumentedType>>>(ty: T) -> DocumentedType {
     DocumentedType::Array {
         ty: ty.into(),
@@ -345,9 +337,9 @@ pub fn array<T: Into<Box<DocumentedType>>>(ty: T) -> DocumentedType {
         nullable: None,
     }
 }
-pub fn one_of<V: Into<Vec<DocumentedType>>>(variants: V) -> DocumentedType {
-    DocumentedType::OneOf {
-        variants: variants.into(),
+pub fn enum_string(enumeration: Vec<String>) -> DocumentedType {
+    DocumentedType::StringEnum {
+        enumeration,
         description: None,
         example: None,
         nullable: None,
@@ -356,6 +348,22 @@ pub fn one_of<V: Into<Vec<DocumentedType>>>(variants: V) -> DocumentedType {
 pub fn map<T: Into<Box<DocumentedType>>>(value_type: T) -> DocumentedType {
     DocumentedType::Map {
         value_type: value_type.into(),
+        description: None,
+        example: None,
+        nullable: None,
+    }
+}
+pub fn object(fields: HashMap<String, DocumentedType>) -> DocumentedType {
+    DocumentedType::Object {
+        properties: fields,
+        description: None,
+        example: None,
+        nullable: None,
+    }
+}
+pub fn one_of<V: Into<Vec<DocumentedType>>>(variants: V) -> DocumentedType {
+    DocumentedType::OneOf {
+        variants: variants.into(),
         description: None,
         example: None,
         nullable: None,
@@ -394,6 +402,12 @@ pub enum DocumentedType {
         example: Option<Value>,
         nullable: Option<bool>,
     },
+    StringEnum {
+        enumeration: Vec<String>,
+        description: Option<String>,
+        example: Option<Value>,
+        nullable: Option<bool>,
+    },
 }
 impl DocumentedType {
     pub fn description<S: Into<String>>(mut self, description_: S) -> Self {
@@ -403,6 +417,7 @@ impl DocumentedType {
             Self::Object { description, .. } => description.replace(description_.into()),
             Self::OneOf { description, .. } => description.replace(description_.into()),
             Self::Primitive { description, .. } => description.replace(description_.into()),
+            Self::StringEnum { description, .. } => description.replace(description_.into()),
         };
         self
     }
@@ -414,6 +429,7 @@ impl DocumentedType {
             Self::Object { example, .. } => example.replace(value),
             Self::OneOf { example, .. } => example.replace(value),
             Self::Primitive { example, .. } => example.replace(value),
+            Self::StringEnum { example, .. } => example.replace(value),
         };
         self
     }
@@ -424,6 +440,7 @@ impl DocumentedType {
             Self::Object { nullable, .. } => nullable.replace(nullable_.into()),
             Self::OneOf { nullable, .. } => nullable.replace(nullable_.into()),
             Self::Primitive { nullable, .. } => nullable.replace(nullable_.into()),
+            Self::StringEnum { nullable, .. } => nullable.replace(nullable_.into()),
         };
         self
     }
@@ -762,6 +779,25 @@ pub fn to_openapi<I: IntoIterator<Item = RouteDocumentation>>(routes: I) -> open
                         }
                     }),
                 },
+                DocumentedType::StringEnum {
+                    enumeration,
+                    description,
+                    example,
+                    nullable,
+                } => {
+                    let mut ty = StringType::default();
+                    ty.enumeration = enumeration;
+
+                    Schema {
+                        schema_data: SchemaData {
+                            description,
+                            example,
+                            nullable: nullable.unwrap_or(false),
+                            ..SchemaData::default()
+                        },
+                        schema_kind: SchemaKind::Type(OpenApiType::String(ty)),
+                    }
+                }
             }
         }
 
