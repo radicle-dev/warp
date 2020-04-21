@@ -216,6 +216,12 @@ impl DocumentedQuery {
     }
 }
 
+impl Documentable for DocumentedQuery {
+    fn document(&self, route: &mut RouteDocumentation) {
+        route.query(self.clone())
+    }
+}
+
 #[derive(Clone, Debug, Default, Eq)]
 pub struct DocumentedResponse {
     pub body: HashSet<DocumentedBody>,
