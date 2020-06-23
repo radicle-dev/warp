@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/warp/0.2.2")]
+#![doc(html_root_url = "https://docs.rs/warp/0.2.3")]
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![cfg_attr(test, deny(warnings))]
@@ -80,7 +80,7 @@
 //! ## Testing
 //!
 //! Testing your web services easily is extremely important, and warp provides
-//! a [`test`](test) module to help send mocked requests through your service.
+//! a [`test`](self::test) module to help send mocked requests through your service.
 //!
 //! [Filter]: trait.Filter.html
 //! [reject]: reject/index.html

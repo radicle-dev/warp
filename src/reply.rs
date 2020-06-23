@@ -155,17 +155,17 @@ impl StdError for ReplyJsonError {}
 ///         <title>HTML with warp!</title>
 ///     </head>
 ///     <body>
-///         <h1>warp + HTML = :heart:</h1>
+///         <h1>warp + HTML = &hearts;</h1>
 ///     </body>
 /// </html>
 /// "#;
 ///
 /// let route = warp::any()
-///     .map(|| {
+///     .map(move || {
 ///         warp::reply::html(body)
 ///     });
 /// ```
-pub fn html<T>(body: T) -> impl Reply
+pub fn html<T>(body: T) -> Html<T>
 where
     Body: From<T>,
     T: Send,
@@ -173,8 +173,9 @@ where
     Html { body }
 }
 
+/// An HTML reply.
 #[allow(missing_debug_implementations)]
-struct Html<T> {
+pub struct Html<T> {
     body: T,
 }
 
